@@ -663,7 +663,7 @@ export class NftController {
 
       // console.log({ totalData });
       const filtered = concatArray?.filter((f, i) => {
-        return f.tokenID == 1991;
+        return f.tokenID == body.nftId;
       });
       console.log('filtered', filtered);
       return { length: filtered.length, filtered };
