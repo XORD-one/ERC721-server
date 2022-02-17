@@ -585,7 +585,7 @@ const Erc721Abi = [
 export class NftController {
   web3 = new Web3(testnet);
 
-  accountAddressOfNftOwner = '0x8D815b1890D25F8E06A2c49C91E97600B8936E80';
+  // accountAddressOfNftOwner = '0x8D815b1890D25F8E06A2c49C91E97600B8936E80';
 
   @Post('/getData')
   async getNft(@Body() body) {
@@ -651,15 +651,16 @@ export class NftController {
         response = await axios.get(
           `https://api.etherscan.io/api?module=account&action=tokennfttx&contractaddress=${body.nftContractAddress}&startblock=${blockNumber}&sort=asc&apikey=WN8R7HNTZ58IIXEVT1ZY149RRQ9NA7NVYB`,
         );
-        // console.log({ response });
-        concatArray = totalData.concat(response.data.result);
-        totalData = response.data.result;
+        
+        console.log('response length', response?.data?.result?.length);
+        concatArray = concatArray.concat(response?.data?.result);
+        // totalData = response.data.result;
         console.log('concatArray', concatArray.length);
 
-        if (response.data.result.length == 10000) {
+        if (response?.data?.result?.length == 10000) {
           blockNumber = Number(response.data.result[9999].blockNumber) + 1;
         }
-      } while (response.data.result.length == 10000);
+      } while (response?.data?.result?.length == 10000);
 
       // console.log({ totalData });
       const filtered = concatArray?.filter((f, i) => {
