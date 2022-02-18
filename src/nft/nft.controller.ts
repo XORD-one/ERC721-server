@@ -1,5 +1,6 @@
 import { Controller, Get, Param, Post, Query, Body } from '@nestjs/common';
 import axios from 'axios';
+import { fetchJson } from 'ethers/lib/utils';
 const ethers = require('ethers');
 const Web3 = require('web3');
 const testnet = `https://mainnet.infura.io/v3/91c5e152233445f394ffe3233aad34a2`; //minnet ki infura uthao
@@ -625,11 +626,11 @@ export class NftController {
 
       let tokenDataArray = [];
       for (let i = 0; i < tokenUriArray?.length; i++) {
-        const response = await axios.get(tokenUriArray[i]);
+        const response = await fetchJson(tokenUriArray[i]);
 
         console.log({ response });
         if (response) {
-          tokenDataArray.push(response.data);
+          tokenDataArray.push(response);
         }
       }
       console.log({ tokenDataArray });
@@ -674,11 +675,11 @@ export class NftController {
 
       let tokenDataArray = [];
       for (let i = 0; i < tokenUriArray?.length; i++) {
-        const response = await axios.get(tokenUriArray[i]);
+        const response = await fetchJson(tokenUriArray[i]);
 
         // console.log({ response });
         if (response) {
-          tokenDataArray.push(response.data);
+          tokenDataArray.push(response);
         }
       }
       console.log({ tokenDataArray });
