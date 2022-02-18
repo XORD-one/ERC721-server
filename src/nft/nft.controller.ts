@@ -1,5 +1,6 @@
 import { Controller, Get, Param, Post, Query, Body } from '@nestjs/common';
 import axios from 'axios';
+const ethers = require('ethers');
 const Web3 = require('web3');
 const testnet = `https://mainnet.infura.io/v3/91c5e152233445f394ffe3233aad34a2`; //minnet ki infura uthao
 const Erc721Abi = [
@@ -635,6 +636,55 @@ export class NftController {
       return { length: tokenDataArray.length, tokenDataArray };
     } catch (e) {
       console.log('error bro==========================', e);
+      return 'err';
+    }
+  }
+
+  @Post('/getDataEther')
+  async getNftEther(@Body() body) {
+    let provider = ethers.getDefaultProvider();
+    const Erc721Contract = new ethers.Contract(
+      body.nftContractAddress, //caddress
+      Erc721Abi,
+      provider,
+    );
+    console.log(Erc721Contract.functions);
+    try {
+      console.log('STARTING===============', body.accountAddress);
+      const balance = await Erc721Contract.balanceOf(body.accountAddress);
+      console.log(balance.toString());
+
+      let tokenIdArray = [];
+      for (let i = 0; i < balance.toString(); i++) {
+        const tokenId = await Erc721Contract.tokenOfOwnerByIndex(
+          body.accountAddress,
+          i,
+        );
+        tokenIdArray.push(tokenId.toString());
+        // console.log({ tokenId });
+      }
+      console.log({ tokenIdArray });
+
+      let tokenUriArray = [];
+      for (let i = 0; i < tokenIdArray?.length; i++) {
+        const tokenUri = await Erc721Contract.tokenURI(tokenIdArray[i]);
+        tokenUriArray.push(tokenUri);
+      }
+      console.log({ tokenUriArray });
+
+      let tokenDataArray = [];
+      for (let i = 0; i < tokenUriArray?.length; i++) {
+        const response = await axios.get(tokenUriArray[i]);
+
+        // console.log({ response });
+        if (response) {
+          tokenDataArray.push(response.data);
+        }
+      }
+      console.log({ tokenDataArray });
+      return { length: tokenDataArray.length, tokenDataArray };
+    } catch (e) {
+      console.log('error bro==========================', e);
       return e;
     }
   }
@@ -651,7 +701,7 @@ export class NftController {
         response = await axios.get(
           `https://api.etherscan.io/api?module=account&action=tokennfttx&contractaddress=${body.nftContractAddress}&startblock=${blockNumber}&sort=asc&apikey=WN8R7HNTZ58IIXEVT1ZY149RRQ9NA7NVYB`,
         );
-        
+
         console.log('response length', response?.data?.result?.length);
         concatArray = concatArray.concat(response?.data?.result);
         // totalData = response.data.result;
