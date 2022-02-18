@@ -636,7 +636,7 @@ export class NftController {
       return { length: tokenDataArray.length, tokenDataArray };
     } catch (e) {
       console.log('error bro==========================', e);
-      return 'err';
+      return e;
     }
   }
 
