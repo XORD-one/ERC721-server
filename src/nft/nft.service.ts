@@ -1,7 +1,6 @@
-import { Controller, Get, Param, Post, Query, Body } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import axios from 'axios';
 import { fetchJson } from 'ethers/lib/utils';
-import { NftService } from './nft.service';
 // import fetch from 'node-fetch';
 const ethers = require('ethers');
 const Web3 = require('web3');
@@ -584,48 +583,138 @@ const Erc721Abi = [
     type: 'function',
   },
 ];
-
-@Controller('/nft')
-export class NftController {
-  constructor(private readonly nftService: NftService) {}
+@Injectable()
+export class NftService {
   web3 = new Web3(testnet);
 
-  // accountAddressOfNftOwner = '0x8D815b1890D25F8E06A2c49C91E97600B8936E80';
+  async getNft(nftContractAddress: string, accountAddress: string) {
+    const Erc721Contract = new this.web3.eth.Contract(
+      Erc721Abi,
+      nftContractAddress, //caddress
+    );
 
-  @Post('/getData')
-  async getNft(
-    @Body('nftContractAddress') contractAddress: string,
-    @Body('accountAddress') accountAddress: string,
-  ) {
-    const data = await this.nftService.getNft(contractAddress, accountAddress);
-    console.log(data);
-    return data;
+    try {
+      console.log('STARTING===============', accountAddress);
+      const balance = await Erc721Contract.methods
+        .balanceOf(accountAddress)
+        .call();
+      console.log({ balance });
+
+      let tokenIdArray = [];
+      for (let i = 0; i < balance; i++) {
+        const tokenId = await Erc721Contract.methods
+          .tokenOfOwnerByIndex(accountAddress, i)
+          .call();
+        tokenIdArray.push(tokenId);
+        // console.log({ tokenId });
+      }
+      console.log({ tokenIdArray });
+
+      let tokenUriArray = [];
+      for (let i = 0; i < tokenIdArray?.length; i++) {
+        const tokenUri = await Erc721Contract.methods
+          .tokenURI(tokenIdArray[i])
+          .call();
+
+        tokenUriArray.push(tokenUri);
+      }
+      console.log({ tokenUriArray });
+
+      let tokenDataArray = [];
+      for (let i = 0; i < tokenUriArray?.length; i++) {
+        const response = await fetchJson(tokenUriArray[i]);
+
+        console.log({ response });
+        if (response) {
+          tokenDataArray.push(response);
+        }
+      }
+      console.log({ tokenDataArray });
+      return { length: tokenDataArray.length, tokenDataArray };
+    } catch (e) {
+      console.log('error bro==========================', e);
+      return e;
+    }
   }
 
-  @Post('/getDataEther')
-  async getNftEther(
-    @Body('nftContractAddress') contractAddress: string,
-    @Body('accountAddress') accountAddress: string,
-  ) {
-    const data = await this.nftService.getNftEther(
-      contractAddress,
-      accountAddress,
+  async getNftEther(nftContractAddress: string, accountAddress: string) {
+    let provider = ethers.getDefaultProvider();
+    const Erc721Contract = new ethers.Contract(
+      nftContractAddress, //caddress
+      Erc721Abi,
+      provider,
     );
-    console.log(data);
-    return data;
-   
-     
+    console.log(Erc721Contract.functions);
+    try {
+      console.log('STARTING===============', accountAddress);
+      const balance = await Erc721Contract.balanceOf(accountAddress);
+      console.log(balance.toString());
+
+      let tokenIdArray = [];
+      for (let i = 0; i < balance.toString(); i++) {
+        const tokenId = await Erc721Contract.tokenOfOwnerByIndex(
+          accountAddress,
+          i,
+        );
+        tokenIdArray.push(tokenId.toString());
+        // console.log({ tokenId });
+      }
+      console.log({ tokenIdArray });
+
+      let tokenUriArray = [];
+      for (let i = 0; i < tokenIdArray?.length; i++) {
+        const tokenUri = await Erc721Contract.tokenURI(tokenIdArray[i]);
+        tokenUriArray.push(tokenUri);
+      }
+      console.log({ tokenUriArray });
+
+      let tokenDataArray = [];
+      for (let i = 0; i < tokenUriArray?.length; i++) {
+        const response = await fetchJson(tokenUriArray[i]);
+
+        // console.log({ response });
+        if (response) {
+          tokenDataArray.push(response);
+        }
+      }
+      console.log({ tokenDataArray });
+      return { length: tokenDataArray.length, tokenDataArray };
+    } catch (e) {
+      console.log('error bro==========================', e);
+      return e;
+    }
   }
 
-  @Post('/getHistory') //takes token Address as input
-  async getNftHistory( @Body('nftContractAddress') contractAddress: string,
-  @Body('nftId') nftId: string,) {
-    const data = await this.nftService.getNftHistory(
-      contractAddress,
-      nftId,
-    );
-    console.log(data);
-    return data;
+  async getNftHistory(nftContractAddress: string, nftId: string) {
+    try {
+      let concatArray = [];
+      let response;
+      let blockNumber = 0;
+      do {
+        console.log('Block No:', blockNumber);
+        response = await axios.get(
+          `https://api.etherscan.io/api?module=account&action=tokennfttx&contractaddress=${nftContractAddress}&startblock=${blockNumber}&sort=asc&apikey=WN8R7HNTZ58IIXEVT1ZY149RRQ9NA7NVYB`,
+        );
+
+        console.log('response length', response?.data?.result?.length);
+        concatArray = concatArray.concat(response?.data?.result);
+        // totalData = response.data.result;
+        console.log('concatArray', concatArray.length);
+
+        if (response?.data?.result?.length == 10000) {
+          blockNumber = Number(response.data.result[9999].blockNumber) + 1;
+        }
+      } while (response?.data?.result?.length == 10000);
+
+      // console.log({ totalData });
+      const filtered = concatArray?.filter((f, i) => {
+        return f.tokenID == nftId;
+      });
+      console.log('filtered', filtered);
+      return { length: filtered.length, filtered };
+    } catch (e) {
+      console.log(e);
+      return e;
+    }
+  }
 }
-
-
